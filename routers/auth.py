@@ -7,7 +7,6 @@ from models.auth import User
 from pydantic import BaseModel, Field
 from passlib.context import CryptContext
 from sqlalchemy.exc import SQLAlchemyError
-from typing import Annotated
 from exceptions import (
     authorization_exception_handler,
     item_not_found_exception_handler,
@@ -105,8 +104,8 @@ async def get_current_user(token: str = Depends(oauth2_bearer)):
 async def get_all_users(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
-    skip: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(gt=0)] = 10,
+    skip: int = Query(default=0,ge=0),
+    limit: int = Query(default=10,gt=0)
 ):
     user_models = db.query(User).offset(skip).limit(limit).all()
 
@@ -148,7 +147,7 @@ async def register_user(local_user: LocalUser, db: Session = Depends(get_db)):
     return {"response": "Registration was successful!"}
 
 
-@router.put("/user")
+@router.put("/user/update")
 async def update_user(
     local_user: LocalUser,
     user: dict = Depends(get_current_user),
@@ -180,9 +179,9 @@ async def update_user(
     return {"response": "User updated successfully"}
 
 
-@router.delete("/user/{user_id}")
+@router.delete("/user/delete/{user_id}")
 async def delete_user(
-    user_id: Annotated[int, Path(gt=0)], db: Session = Depends(get_db), user:dict =Depends(get_current_user)
+    user_id: int =Path(...,gt=0), db: Session = Depends(get_db), user:dict =Depends(get_current_user)
 ):
     user_model = db.query(User).filter(User.id == user_id).first()
     if user_model is None:

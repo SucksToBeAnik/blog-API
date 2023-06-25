@@ -4,7 +4,6 @@ from exceptions import item_not_found_exception_handler
 from database import get_db
 from routers.auth import get_current_user
 from models.blog import Blog
-from typing import Annotated
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -29,8 +28,8 @@ class LocalBlog(BaseModel):
 async def get_all_blogs(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
-    skip: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(gt=0)] = 10,
+    skip: int = Query(default=0,ge=0),
+    limit: int = Query(default=10,gt=0)
 ):
     blog_models = (
         db.query(Blog)
@@ -45,7 +44,7 @@ async def get_all_blogs(
 
 @router.get("/{blog_id}")
 async def get_single_blog(
-    blog_id: Annotated[int, Path(gt=0)],
+    blog_id: int= Path(...,gt=0),
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -83,10 +82,10 @@ async def create_blog(
     return {"response": "Blog was created!"}
 
 
-@router.put("/{blog_id}")
+@router.put("/update/{blog_id}")
 def update_blog(
-    blog_id: Annotated[int, Path(gt=0)],
     local_blog: LocalBlog,
+    blog_id: int= Path(...,gt=0),
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -111,9 +110,9 @@ def update_blog(
         raise e
     return {"response": "Blog was updated!"}
 
-@router.delete('/{blog_id}')
+@router.delete('/delete/{blog_id}')
 async def delete_blog(
-    blog_id: Annotated[int, Path(gt=0)],
+    blog_id: int= Path(gt=0),
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
