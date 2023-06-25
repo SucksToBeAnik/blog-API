@@ -182,7 +182,7 @@ async def update_user(
 
 @router.delete("/user/{user_id}")
 async def delete_user(
-    user_id: Annotated[int, Path(gt=0)], db: Session = Depends(get_db)
+    user_id: Annotated[int, Path(gt=0)], db: Session = Depends(get_db), user:dict =Depends(get_current_user)
 ):
     user_model = db.query(User).filter(User.id == user_id).first()
     if user_model is None:
