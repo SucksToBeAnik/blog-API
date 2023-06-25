@@ -11,7 +11,7 @@ def item_not_found_exception_handler():
 def authorization_exception_handler():
     response = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail={'error':'Invalid username or password'}
+        detail={'error':'You are not authorized to perform this task. Please login!'}
     )
     return response
     

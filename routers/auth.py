@@ -105,7 +105,7 @@ async def get_current_user(token: str = Depends(oauth2_bearer)):
 async def get_all_users(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
-    skip: Annotated[int, Query(gte=0)] = 0,
+    skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(gt=0)] = 10,
 ):
     user_models = db.query(User).offset(skip).limit(limit).all()
@@ -114,14 +114,21 @@ async def get_all_users(
         return {"response": "No registered users"}
     return user_models
 
+@router.get('/user/account')
+async def get_own_account(user: dict = Depends(get_current_user), db: Session=Depends(get_db)):
+    user_model = db.query(User).filter(User.id == user.get('id')).first()
+    
+    return user_model
+
 
 @router.post("/user")
 async def register_user(local_user: LocalUser, db: Session = Depends(get_db)):
     user_model = User()
+
     existing_user_model = (
         db.query(User).filter(User.username == local_user.username).first()
     )
-    print(existing_user_model)
+
     if existing_user_model:
         raise unique_item_exception_hnadler()
 
@@ -129,19 +136,16 @@ async def register_user(local_user: LocalUser, db: Session = Depends(get_db)):
     user_model.email = local_user.email
     user_model.first_name = local_user.first_name
     user_model.last_name = local_user.last_name
-    user_model.is_ative = local_user.is_ative
     user_model.hashed_password = get_hashed_password(local_user.password)
 
     try:
         db.add(user_model)
         db.commit()
     except SQLAlchemyError as e:
-        return {"error": "There was an error while registering. Please try again!"}
+        db.rollback()  # Rollback the transaction
+        raise e  # Re-raise the exception
 
     return {"response": "Registration was successful!"}
-
-
-
 
 
 @router.put("/user")
@@ -150,28 +154,30 @@ async def update_user(
     user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    user_id = user.get('id')
+    user_id = user.get("id")
     user_model = db.query(User).filter(User.id == user_id).first()
     if user_model is None:
         raise item_not_found_exception_handler()
-    
+
+    existing_user_model = (
+        db.query(User)
+        .filter(User.username == local_user.username).filter(User.username != user_model.username).first()
+    )
+    if existing_user_model:
+        raise unique_item_exception_hnadler()
+
     user_model.username = local_user.username
     user_model.email = local_user.email
     user_model.first_name = local_user.first_name
     user_model.last_name = local_user.last_name
-    user_model.is_ative = local_user.is_ative
     user_model.hashed_password = get_hashed_password(local_user.password)
 
     try:
         db.add(user_model)
         db.commit()
     except SQLAlchemyError as e:
-        return {"error": "There was an error while registering. Please try again!"}
-    return {
-        'response':'User updated successfully'
-    }
-
-
+        return {"error": "There was an error while updating your account!"}
+    return {"response": "User updated successfully"}
 
 
 @router.delete("/user/{user_id}")
@@ -192,12 +198,12 @@ async def delete_user(
 ##  FOOTER
 
 
-@router.post("/user/token")
+@router.post("/token")
 async def login_for_access_token(
     login_form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     user_model = authenticate_user(login_form.username, login_form.password, db)
-    token = login_for_access_token(
+    token = create_access_token(
         user_model.username, user_model.id, token_expires_in=timedelta(minutes=20)
     )
 
