@@ -15,8 +15,8 @@ from exceptions import (
 )
 from jose import jwt, JWTError
 from datetime import timedelta, datetime
-import config
-import os
+from config import get_settings
+
 
 router = APIRouter(
     prefix="/auth",
@@ -49,8 +49,8 @@ class LocalUser(BaseModel):
 
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-ALGORITHM = os.getenv("ALGORITHM")
-SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = get_settings().algorithm
+SECRET_KEY = get_settings().secret_key
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
 
 
