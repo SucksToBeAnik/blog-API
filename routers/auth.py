@@ -71,7 +71,7 @@ def authenticate_user(username: str, password: str, db):
 
 
 def create_access_token(
-    username: str, user_id: int, token_expires_in: timedelta | None = None
+    username: str, user_id: int, token_expires_in: timedelta = None
 ):
     to_encode = {"sub": username, "id": user_id}
 
